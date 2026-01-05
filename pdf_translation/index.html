@@ -223,7 +223,9 @@
                     onMouseUp={() => {
                         const sel = window.getSelection();
                         const text = sel.toString().trim();
-                        if (text) onTextSelect(text, sel.getRangeAt(0).getBoundingClientRect());
+                        if (text && sel.rangeCount > 0) {
+                            onTextSelect(text, sel.getRangeAt(0).getBoundingClientRect());
+                        }
                     }}
                 >
                     <canvas ref={canvasRef} />
@@ -264,9 +266,10 @@
             const rightRef = useRef(null);
 
             const handleTextSelect = useCallback(async (text, rect) => {
+                if (!rect) return;
                 setSelectionInfo({ text, rect, translation: "翻译中...", loading: true });
                 const translated = await translateText(text);
-                setSelectionInfo(prev => ({ ...prev, translation: translated, loading: false }));
+                setSelectionInfo(prev => prev ? ({ ...prev, translation: translated, loading: false }) : null);
             }, []);
 
             const handleFileChange = async (e) => {
@@ -322,13 +325,16 @@
                         </div>
                         {/* 右侧翻译区：居左对齐 */}
                         <div ref={rightRef} onScroll={syncScroll} className="w-1/2 overflow-y-auto flex flex-col items-start pt-8 pb-12 pl-4 pr-12 bg-gray-50 border-l border-gray-200">
-                            {pages.map((p, i) => <PdfPage key={`r-${i}`} page={p} scale={scale} isTranslationMode={true} />)}
+                            {pages.map((p, i) => <PdfPage key={`r-${i}`} page={p} scale={scale} isTranslationMode={true} onTextSelect={handleTextSelect} />)}
                         </div>
                     </main>
 
-                    {selectionInfo && (
+                    {selectionInfo && selectionInfo.rect && (
                         <div className="tooltip fixed z-[100] bg-white rounded-xl shadow-2xl border border-gray-100 w-80 overflow-hidden"
-                            style={{ left: Math.min(selectionInfo.rect.left, window.innerWidth - 340), top: selectionInfo.rect.bottom + 10 }}>
+                            style={{ 
+                                left: Math.min(selectionInfo.rect.left, window.innerWidth - 340), 
+                                top: selectionInfo.rect.bottom + 10 
+                            }}>
                             <div className="p-3 bg-gray-50 text-[10px] text-gray-400 border-b flex justify-between">
                                 <span>选中文本翻译</span>
                                 {selectionInfo.loading && <div className="loader"></div>}
